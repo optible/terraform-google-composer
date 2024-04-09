@@ -20,11 +20,11 @@ terraform {
 
     google = {
       source  = "hashicorp/google"
-      version = ">= 3.53, < 5.0"
+      version = ">= 3.53, < 6"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-composer:airflow_storage/v3.4.0"
+    module_name = "blueprints/terraform/terraform-google-composer:airflow_storage/v5.0.0"
   }
 }

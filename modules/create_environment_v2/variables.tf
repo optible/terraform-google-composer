@@ -61,7 +61,7 @@ variable "network_project_id" {
 
 variable "subnetwork" {
   type        = string
-  description = "The subnetwork to host the composer cluster."
+  description = "The name of the subnetwork to host the composer cluster."
 }
 
 variable "subnetwork_region" {
@@ -77,14 +77,14 @@ variable "composer_service_account" {
 }
 
 variable "pod_ip_allocation_range_name" {
-  description = "The name of the cluster's secondary range used to allocate IP addresses to pods."
+  description = "The name of the subnet secondary range, used to allocate IP addresses for the pods."
   type        = string
   default     = null
 }
 
 variable "service_ip_allocation_range_name" {
   type        = string
-  description = "The name of the services' secondary range used to allocate IP addresses to the cluster."
+  description = "The name of the subnet secondary range, used to allocate IP addresses for the Services."
   default     = null
 }
 
@@ -103,7 +103,7 @@ variable "env_variables" {
 variable "image_version" {
   type        = string
   description = "The version of the aiflow running in the cloud composer environment."
-  default     = "composer-2.0.2-airflow-2.1.4"
+  default     = "composer-2.5.0-airflow-2.6.3"
 }
 
 variable "pypi_packages" {
@@ -113,48 +113,45 @@ variable "pypi_packages" {
 }
 
 variable "use_private_environment" {
-  description = "Enable private environment."
+  description = "Create a private environment."
   type        = bool
   default     = false
 }
 
 variable "cloud_composer_connection_subnetwork" {
-  description = "When specified, the environment will use Private Service Connect instead of VPC peerings to connect to Cloud SQL in the Tenant Project"
+  description = "Subnetwork self-link. When specified, the environment will use Private Service Connect instead of VPC peerings to connect to CloudSQL in the Tenant Project. IP address of psc endpoint is allocated from this subnet"
   type        = string
   default     = null
 }
 
 variable "cloud_sql_ipv4_cidr" {
-  description = "The CIDR block from which IP range in tenant project will be reserved for Cloud SQL."
+  description = "The CIDR block from which IP range in tenant project will be reserved for Cloud SQL private service access. Required if VPC peering is used to connect to CloudSql instead of PSC"
   type        = string
   default     = null
 }
 
 variable "master_ipv4_cidr" {
-  description = "The CIDR block from which IP range in tenant project will be reserved for the master."
+  description = "The CIDR block from which IP range in tenant project will be reserved for the GKE master. Required when `use_private_environment` and `enable_private_endpoint` is `true`"
   type        = string
   default     = null
 }
 
 variable "enable_private_endpoint" {
-  description = "Configure public access to the cluster endpoint."
+  description = "Configure private access to the cluster endpoint. If true, access to the public endpoint of the GKE cluster is denied"
+  type        = bool
+  default     = false
+}
+
+variable "enable_privately_used_public_ips" {
+  description = "When enabled, IPs from public (non-RFC1918) ranges can be used for pod_ip_allocation_range_name and service_ip_allocation_range_name."
   type        = bool
   default     = false
 }
 
 variable "cloud_composer_network_ipv4_cidr_block" {
-  description = "The CIDR block from which IP range in tenant project will be reserved."
+  description = "The CIDR block from which IP range in tenant project will be reserved. Required if VPC peering is used to connect to CloudSql instead of PSC"
   type        = string
   default     = null
-}
-
-variable "web_server_allowed_ip_ranges" {
-  description = "The network-level access control policy for the Airflow web server. If unspecified, no network-level access restrictions will be applied."
-  default     = null
-  type = list(object({
-    value       = string,
-    description = string
-  }))
 }
 
 variable "maintenance_start_time" {
@@ -177,7 +174,7 @@ variable "maintenance_recurrence" {
 
 variable "environment_size" {
   type        = string
-  description = "The environment size controls the performance parameters of the managed Cloud Composer infrastructure that includes the Airflow database. Values for environment size are: ENVIRONMENT_SIZE_SMALL, ENVIRONMENT_SIZE_MEDIUM, and ENVIRONMENT_SIZE_LARGE."
+  description = "The environment size controls the performance parameters of the managed Cloud Composer infrastructure that includes the Airflow database. Values for environment size are: `ENVIRONMENT_SIZE_SMALL`, `ENVIRONMENT_SIZE_MEDIUM`, and `ENVIRONMENT_SIZE_LARGE`."
   default     = "ENVIRONMENT_SIZE_MEDIUM"
 }
 
@@ -231,16 +228,12 @@ variable "worker" {
 
 variable "triggerer" {
   type = object({
-    cpu        = string
-    memory_gb  = number
-    count = number
+    cpu       = string
+    memory_gb = number
+    count     = number
   })
-  default = {
-    cpu        = 2
-    memory_gb  = 7.5
-    count = 1
-  }
-  description = "Configuration for resources used by Airflow trigger."
+  default     = null
+  description = " Configuration for resources used by Airflow triggerer"
 }
 
 variable "master_authorized_networks" {
@@ -256,4 +249,54 @@ variable "grant_sa_agent_permission" {
   type        = bool
   default     = true
   description = "Cloud Composer relies on Workload Identity as Google API authentication mechanism for Airflow. "
+}
+
+variable "scheduled_snapshots_config" {
+  type = object({
+    enabled                    = optional(bool, false)
+    snapshot_location          = optional(string)
+    snapshot_creation_schedule = optional(string)
+    time_zone                  = optional(string)
+  })
+  default     = null
+  description = "The recovery configuration settings for the Cloud Composer environment"
+}
+
+variable "storage_bucket" {
+  description = "Name of an existing Cloud Storage bucket to be used by the environment"
+  type        = string
+  default     = null
+}
+
+variable "resilience_mode" {
+  description = "Cloud Composer 2.1.15 or newer only. The resilience mode states whether high resilience is enabled for the environment or not. Values for resilience mode are `HIGH_RESILIENCE` for high resilience and `STANDARD_RESILIENCE` for standard resilience"
+  type        = string
+  default     = null
+}
+
+variable "cloud_data_lineage_integration" {
+  description = "Whether or not Dataplex data lineage integration is enabled. Cloud Composer environments in versions composer-2.1.2-airflow-..* and newer)"
+  type        = bool
+  default     = false
+}
+
+variable "web_server_network_access_control" {
+  type = list(object({
+    allowed_ip_range = string
+    description      = string
+  }))
+  default     = null
+  description = "The network-level access control policy for the Airflow web server. If unspecified, no network-level access restrictions are applied"
+}
+
+variable "kms_key_name" {
+  description = "Customer-managed Encryption Key fully qualified resource name, i.e. projects/project-id/locations/location/keyRings/keyring/cryptoKeys/key."
+  type        = string
+  default     = null
+}
+
+variable "task_logs_retention_storage_mode" {
+  description = "The mode of storage for Airflow workers task logs. Values for storage mode are CLOUD_LOGGING_ONLY to only store logs in cloud logging and CLOUD_LOGGING_AND_CLOUD_STORAGE to store logs in cloud logging and cloud storage. Cloud Composer 2.0.23 or newer only"
+  type        = string
+  default     = null
 }

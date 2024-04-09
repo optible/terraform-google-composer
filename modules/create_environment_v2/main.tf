@@ -32,9 +32,17 @@ resource "google_composer_environment" "composer_env" {
   region  = var.region
   labels  = var.labels
 
+  dynamic "storage_config" {
+    for_each = var.storage_bucket != null ? ["storage_config"] : []
+    content {
+      bucket = var.storage_bucket
+    }
+  }
+
   config {
 
     environment_size = var.environment_size
+    resilience_mode  = var.resilience_mode
 
     node_config {
       network              = "projects/${local.network_project_id}/global/networks/${var.network}"
@@ -65,6 +73,12 @@ resource "google_composer_environment" "composer_env" {
         pypi_packages            = software_config.value["pypi_packages"]
         env_variables            = software_config.value["env_variables"]
         image_version            = software_config.value["image_version"]
+        dynamic "cloud_data_lineage_integration" {
+          for_each = var.cloud_data_lineage_integration ? ["cloud_data_lineage_integration"] : []
+          content {
+            enabled = var.cloud_data_lineage_integration
+          }
+        }
       }
     }
 
@@ -72,6 +86,7 @@ resource "google_composer_environment" "composer_env" {
       for_each = var.use_private_environment ? [
         {
           enable_private_endpoint                = var.enable_private_endpoint
+          enable_privately_used_public_ips       = var.enable_privately_used_public_ips
           master_ipv4_cidr_block                 = var.master_ipv4_cidr
           cloud_sql_ipv4_cidr_block              = var.cloud_sql_ipv4_cidr
           cloud_composer_network_ipv4_cidr_block = var.cloud_composer_network_ipv4_cidr_block
@@ -79,6 +94,7 @@ resource "google_composer_environment" "composer_env" {
       }] : []
       content {
         enable_private_endpoint                = private_environment_config.value["enable_private_endpoint"]
+        enable_privately_used_public_ips       = private_environment_config.value["enable_privately_used_public_ips"]
         master_ipv4_cidr_block                 = private_environment_config.value["master_ipv4_cidr_block"]
         cloud_sql_ipv4_cidr_block              = private_environment_config.value["cloud_sql_ipv4_cidr_block"]
         cloud_composer_network_ipv4_cidr_block = private_environment_config.value["cloud_composer_network_ipv4_cidr_block"]
@@ -140,6 +156,16 @@ resource "google_composer_environment" "composer_env" {
           max_count  = worker.value["max_count"]
         }
       }
+
+      dynamic "triggerer" {
+        for_each = var.triggerer != null ? [var.triggerer] : []
+        content {
+          cpu       = triggerer.value["cpu"]
+          memory_gb = triggerer.value["memory_gb"]
+          count     = triggerer.value["count"]
+        }
+      }
+
     }
 
     dynamic "master_authorized_networks_config" {
@@ -155,6 +181,51 @@ resource "google_composer_environment" "composer_env" {
         }
       }
     }
+
+    dynamic "recovery_config" {
+      for_each = var.scheduled_snapshots_config != null ? ["recovery_config"] : []
+      content {
+        dynamic "scheduled_snapshots_config" {
+          for_each = var.scheduled_snapshots_config != null ? [var.scheduled_snapshots_config] : []
+          content {
+            enabled                    = scheduled_snapshots_config.value["enabled"]
+            snapshot_location          = scheduled_snapshots_config.value["snapshot_location"]
+            snapshot_creation_schedule = scheduled_snapshots_config.value["snapshot_creation_schedule"]
+            time_zone                  = scheduled_snapshots_config.value["time_zone"]
+          }
+        }
+      }
+    }
+
+    dynamic "web_server_network_access_control" {
+      for_each = var.web_server_network_access_control == null ? [] : ["web_server_network_access_control"]
+      content {
+        dynamic "allowed_ip_range" {
+          for_each = { for x in var.web_server_network_access_control : x.allowed_ip_range => x }
+          content {
+            value       = allowed_ip_range.value["allowed_ip_range"]
+            description = allowed_ip_range.value["description"]
+          }
+        }
+      }
+    }
+
+    dynamic "encryption_config" {
+      for_each = var.kms_key_name != null ? ["encryption_config"] : []
+      content {
+        kms_key_name = var.kms_key_name
+      }
+    }
+
+    dynamic "data_retention_config" {
+      for_each = var.task_logs_retention_storage_mode == null ? [] : ["data_retention_config"]
+      content {
+        task_logs_retention_config {
+          storage_mode = var.task_logs_retention_storage_mode
+        }
+      }
+    }
+
   }
 
   depends_on = [google_project_iam_member.composer_agent_service_account]

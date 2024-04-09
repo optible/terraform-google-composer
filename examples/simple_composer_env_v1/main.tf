@@ -15,7 +15,9 @@
  */
 
 module "simple-composer-environment" {
-  source                           = "../../modules/create_environment_v1"
+  source  = "terraform-google-modules/composer/google//modules/create_environment_v1"
+  version = "~> 4.0"
+
   project_id                       = var.project_id
   composer_env_name                = var.composer_env_name
   region                           = var.region
@@ -27,4 +29,5 @@ module "simple-composer-environment" {
   service_ip_allocation_range_name = var.service_ip_allocation_range_name
   node_count                       = 3
   machine_type                     = "n1-standard-1"
+  image_version                    = "composer-1.20.12-airflow-1.10.15"
 }

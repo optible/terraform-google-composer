@@ -6,20 +6,31 @@ The resources/services/activations/deletions that this module will create/trigge
 
 - Create a GCP Composer Environment
 
+## Compatibility
+
+This module is meant for use with Terraform 1.3+ and tested using Terraform 1.3+. If you find incompatibilities using Terraform >=1.3, please open an issue.
+
+## Version
+
+Current version is 4.0. Upgrade guides:
+
+- [3.X -> 4.0.](/docs/upgrading_to_v4.0.md)
+- [4.X -> 5.0.](/docs/upgrading_to_v5.0.md)
+
 ## Usage
 Cloud Composer currently has two versions: V2 has greater flexibility in the Airflow core services
 (scheduler, webserver, worker) and has a more practical and scalable infrastructure. Therefore, we recommend prioritizing the
-use of V2 for new environments.
+use of [V2](/modules/create_environment_v2/) for new environments.
 
 You can find an overview of the product [here](https://cloud.google.com/composer/docs/composer-2/composer-overview)
-and the [list of major differences](https://cloud.google.com/composer/docs/concepts/versioning/composer-versioning-overview).
+and the [list of major differences](https://cloud.google.com/composer/docs/concepts/versioning/composer-versioning-overview). Plans for Cloud Composer V1 end of support is documented [here](https://cloud.google.com/composer/docs/composer-versioning-overview#version-support-for-composer-1).
 
 Simple usage is as follows:
 
 ```hcl
 module "composer" {
   source  = "terraform-google-modules/composer/google"
-  version = "~> 3.4"
+  version = "~> 5.0"
 
   project_id        = "<PROJECT ID>"
   region            = "us-central1"
@@ -66,8 +77,8 @@ These sections describe requirements for using this module.
 
 The following dependencies must be available:
 
-- [Terraform][terraform] v0.13+
-- [Terraform Provider for GCP][terraform-provider-gcp] plugin v3.53+
+- [Terraform][terraform] v1.3+
+- [Terraform Provider for GCP][terraform-provider-gcp] plugin v5.3+
 
 ### Service Account
 

@@ -15,14 +15,13 @@
  */
 
 terraform {
-  required_version = ">= 0.13"
+  required_version = ">= 0.14"
   required_providers {
 
     google = {
       source  = "hashicorp/google"
       version = ">= 3.53, < 6"
     }
-
     google-beta = {
       source  = "hashicorp/google-beta"
       version = ">= 3.53, < 6"
@@ -30,11 +29,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-composer:create_environment_v1/v5.0.0"
+    module_name = "blueprints/terraform/terraform-google-composer:composer_net/v5.0.0"
   }
-
-  provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-composer:create_environment_v1/v5.0.0"
-  }
-
 }
